@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.05) 10px,
+                rgba(255, 255, 255, 0.05) 20px
+            );
+            animation: slide 20s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(-50px); }
+            100% { transform: translateX(50px); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        select, button {
+            padding: 8px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: #3498db;
+            transform: translateY(-1px);
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #2980b9, #1abc9c);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #1abc9c);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .positive { color: #27ae60; }
+        .negative { color: #e74c3c; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-2px);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats-grid, .charts-grid {
+                padding: 15px;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>📊 Analytics Dashboard</h1>
+            <p>Real-time business intelligence and performance metrics</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="timeRange">Time Range:</label>
+                <select id="timeRange">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="dataSource">Data Source:</label>
+                <select id="dataSource">
+                    <option value="sales">Sales Data</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="users">User Analytics</option>
+                </select>
+            </div>
+            <button onclick="refreshData()">🔄 Refresh Data</button>
+            <button onclick="exportData()">📥 Export</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Total Revenue</span>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white;">💰</div>
+                </div>
+                <div class="stat-value" id="revenue">$24,580</div>
+                <div class="stat-change positive">↗ +12.5% from last month</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Active Users</span>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #1abc9c, #16a085); color: white;">👥</div>
+                </div>
+                <div class="stat-value" id="users">8,492</div>
+                <div class="stat-change positive">↗ +8.2% from last month</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Conversion Rate</span>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white;">📈</div>
+                </div>
+                <div class="stat-value" id="conversion">3.24%</div>
+                <div class="stat-change negative">↘ -2.1% from last month</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Avg Order Value</span>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #e67e22, #d35400); color: white;">💳</div>
+                </div>
+                <div class="stat-value" id="orderValue">$89.50</div>
+                <div class="stat-change positive">↗ +5.7% from last month</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3 class="chart-title">Revenue Trend</h3>
+                <div class="chart-wrapper">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">User Acquisition</h3>
+                <div class="chart-wrapper">
+                    <canvas id="userChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Sales by Category</h3>
+                <div class="chart-wrapper">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Performance Metrics</h3>
+                <div class="chart-wrapper">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data generators
+        function generateRevenueData(days = 30) {
+            const data = [];
+            const labels = [];
+            let baseValue = 800;
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                baseValue += (Math.random() - 0.5) * 200;
+                baseValue = Math.max(400, Math.min(1500, baseValue));
+                data.push(Math.round(baseValue));
+            }
+            
+            return { labels, data };
+        }
+
+        function generateUserData(days = 30) {
+            const data = [];
+            const labels = [];
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                data.push(Math.floor(Math.random() * 300) + 100);
+            }
+            
+            return { labels, data };
+        }
+
+        // Chart configurations
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        };
+
+        // Initialize charts
+        function initCharts() {
+            // Revenue Chart
+            const revenueData = generateRevenueData(30);
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: revenueData.labels,
+                    datasets: [{
+                        data: revenueData.data,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#3498db',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: chartConfig
+            });
+
+            // User Chart
+            const userData = generateUserData(30);
+            const userCtx = document.getElementById('userChart').getContext('2d');
+            new Chart(userCtx, {
+                type: 'bar',
+                data: {
+                    labels: userData.labels,
+                    datasets: [{
+                        data: userData.data,
+                        backgroundColor: 'rgba(26, 188, 156, 0.8)',
+                        borderColor: '#1abc9c',
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: chartConfig
+            });
+
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'],
+                    datasets: [{
+                        data: [35, 25, 15, 15, 10],
+                        backgroundColor: [
+                            '#3498db',
+                            '#1abc9c',
+                            '#9b59b6',
+                            '#e67e22',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(performanceCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Sales', 'Marketing', 'Support', 'Development', 'Design', 'Analytics'],
+                    datasets: [{
+                        label: 'Current',
+                        data: [85, 78, 92, 88, 76, 89],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3498db'
+                    }, {
+                        label: 'Target',
+                        data: [90, 85, 95, 90, 85, 92],
+                        borderColor: '#1abc9c',
+                        backgroundColor: 'rgba(26, 188, 156, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#1abc9c'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utility functions
+        function refreshData() {
+            // Animate refresh button
+            const btn = event.target;
+            btn.style.transform = 'rotate(360deg)';
+            btn.style.transition = 'transform 0.5s ease';
+            
+            setTimeout(() => {
+                btn.style.transform = 'rotate(0deg)';
+                // Update stats with random values
+                updateStats();
+            }, 500);
+        }
+
+        function updateStats() {
+            document.getElementById('revenue').textContent = '$' + (Math.random() * 50000 + 20000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('users').textContent = (Math.random() * 5000 + 5000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('conversion').textContent = (Math.random() * 3 + 2).toFixed(2) + '%';
+            document.getElementById('orderValue').textContent = '$' + (Math.random() * 50 + 60).toFixed(2);
+        }
+
+        function exportData() {
+            const btn = event.target;
+            btn.textContent = '⏳ Exporting...';
+            
+            setTimeout(() => {
+                btn.textContent = '✅ Exported!';
+                setTimeout(() => {
+                    btn.textContent = '📥 Export';
+                }, 2000);
+            }, 1500);
+        }
+
+        // Event listeners
+        document.getElementById('timeRange').addEventListener('change', function() {
+            console.log('Time range changed to:', this.value);
+            // In a real app, this would trigger data refresh
+        });
+
+        document.getElementById('dataSource').addEventListener('change', function() {
+            console.log('Data source changed to:', this.value);
+            // In a real app, this would switch data sets
+        });
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            
+            // Add some loading animation
+            const cards = document.querySelectorAll('.stat-card, .chart-container');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Auto-refresh data every 30 seconds
+        setInterval(updateStats, 30000);
+    </script>
+</body>
+</html>
